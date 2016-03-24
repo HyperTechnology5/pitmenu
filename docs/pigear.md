@@ -43,10 +43,13 @@ Get image from the [Download Page](https://minibianpi.wordpress.com/download/)
 1. write to SD card
 2. resize partition
   - set root to 2GB
-  - add swap 512MB : mkswapon (OPTIONAL)
-  - add save partition: 256MB (Preferred)
-  - add data partition (rest of the SD card)
+  - e2fsck -f dev ; resize2fs dev
+3. add swap 512MB : mkswap (OPTIONAL)
+4. add save partition: 256MB (Preferred)
+5. add data partition (rest of the SD card)
   - `mke2fs -L data`
+
+Mount and tweak config.txt
 
 # Tweak config.txt
 
@@ -64,6 +67,8 @@ Useful settings:
     hdmi_group=2
     hdmi_mode=39
 
+Now we are ready to boot the SD card.
+
 Boot the SD card, the default login is:
 
     root:raspberry
@@ -73,10 +78,15 @@ Boot the SD card, the default login is:
 Change pasword...
 
     passwd
+    apt-get update
+    apt-get install raspi-config
 
 ## Update software/firmware
 
-    apt-get install raspi-config rpi-update
+This step while desirable, is currently (as of 01/03/2016) not
+working.  The right kernel modules fail to load.
+
+    apt-get install rpi-update
     rpi-update # to update firmware to latest
 
 ## Network Configuration
@@ -96,87 +106,11 @@ Change hostname:
     /etc/hosts
     /etc/hostname
 
-## HW Clock
-
-Install HW Clock ([PiFace Shim RTC](https://github.com/piface/PiFace-Real-Time-Clock))
-
-    apt-get install i2c-tools
-    raspi-config
-
-Goto Advanced Options and enable I2C.
-
-Add to `/etc/rc.local`
-
-    modprobe i2c-dev
-    # Calibrate the clock (default: 0x47). See datasheet for MCP7940N
-    i2cset -y 1 0x6f 0x08 0x47
-    modprobe i2c:mcp7941x
-    echo mcp7941x 0x6f > /sys/class/i2c-dev/i2c-1/device/new_device
-    hwclock -s
-
-Setup Timezone
-
-    dpkg-reconfigure tzdata
-
-This is no longer needed:
-
-    insserv -r fake-hwclock
-
-
-## Watchdog Service
-
-Watchdog, should make it reboot if it hangs (do this before overclocking!)
-
-    apt-get install watchdog
-    add bcm2708_wdog to /etc/modules
-    update-rc.d watchdog defaults
-
-Edit `/etc/watchdog.conf` and uncomment
-
-    max-load-1
-    watchdog-device
-
-Activate:
-
-    service watchdog start
-
-## Run as non-root (normal user)
-
-Install sudo:
-
-    apt-get install sudo
-
-ADD TO SUDOERS:
-
-    %sudo   ALL=(ALL:ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /bin/mount
-
-Create user:
-
-    useradd -m pi
-    passwd pi
-    usermod -a -G video,input,audio,sudo,tty [your username]
-
-Configure autologin:
-
-Use `raspi-config` boot options
-
-From your Desktop system:
-
-    ssh-copy-id pi@minibian1
-    # The next one is optional
-    ssh-copy-id root@minibian1
-
-To deploy SSH public keys.  This is needed by the deployment
-scripts...
-
-
 # Configure PiTFT
 
 Adding adafruit repositories:
 
-    wget -O- http://apt.adafruit.com/add-pin | sh
-
-Fix `/etc/apt/preferences.d/adatfruit` (There is an `-e` sneaking somewhere)
+    wget -O- http://apt.adafruit.com/add-pin | bash
 
 Install the kernel:
 
@@ -249,6 +183,94 @@ Control Back-lit
     gpio -g pwm 18 1023 # max brightness
     gpio -g pwm 18 850 # min usable brightness
     gpio -g pwm 18 0 # backlight off
+
+
+## HW Clock
+
+Install HW Clock
+([PiFace Shim RTC](https://github.com/piface/PiFace-Real-Time-Clock)).
+Full instructions are here:
+[PiFaceClockGuide](http://www.piface.org.uk/assets/piface_clock/PiFaceClockguide.pdf)
+
+    apt-get install i2c-tools ntpdate
+    raspi-config
+
+Goto Advanced Options and enable I2C.
+
+Check if the RTC can be found:
+
+    i2cdetect 1
+
+RTC should be detected at `6f`.
+
+Add to `/etc/rc.local`
+
+    modprobe i2c-dev
+    # Calibrate the clock (default: 0x47). See datasheet for MCP7940N
+    i2cset -y 1 0x6f 0x08 0x47
+    modprobe i2c:mcp7941x
+    echo mcp7941x 0x6f > /sys/class/i2c-dev/i2c-1/device/new_device
+    hwclock -s
+
+Setup Timezone
+
+    dpkg-reconfigure tzdata
+
+This is no longer needed:
+
+    insserv -r fake-hwclock
+
+Make sure time is right:
+
+    ntpdate <ntp-server>
+    hwclock -w
+
+## Watchdog Service
+
+Watchdog, should make it reboot if it hangs (do this before overclocking!)
+
+    apt-get install watchdog
+    add bcm2708_wdog to /etc/modules
+    update-rc.d watchdog defaults
+
+Edit `/etc/watchdog.conf` and uncomment
+
+    max-load-1
+    watchdog-device
+
+Activate:
+
+    service watchdog start
+
+## Run as non-root (normal user)
+
+Install sudo:
+
+    apt-get install sudo
+
+ADD TO SUDOERS:
+
+    %sudo   ALL=(ALL:ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /bin/mount
+
+Create user:
+
+    useradd -m pi
+    passwd pi
+    usermod -a -G video,input,audio,sudo,tty pi
+
+Configure autologin:
+
+Use `raspi-config` boot options
+
+From your Desktop system:
+
+    ssh-copy-id pi@minibian1
+    # The next one is optional
+    ssh-copy-id root@minibian1
+
+To deploy SSH public keys.  This is needed by the deployment
+scripts...
+
 
 # Configure Additional Software
 

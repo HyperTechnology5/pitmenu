@@ -1,5 +1,5 @@
 #!/bin/sh
-roms=/home/pi/roms
+roms=/roms/pi
 
 log=/tmp/helper-log
 ######################################################################
@@ -116,6 +116,8 @@ echo ""
 echo -n "Configuring..."
 
 mkdir /tmp/pi-mednafen /tmp/pi-config
+cp -av /save/pi/* $HOME/.mednafen
+
 # Configure audio
 amixer cset numid=3 1 # 2=HDMI, 1=analogue, 0=auto
 amixer sset PCM 350 # Volume 0-400?

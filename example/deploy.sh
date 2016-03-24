@@ -2,7 +2,7 @@
 #
 # Simple deployment script
 #
-system=minibian1
+system=minibian2
 ruser=pi
 
 exec 3>&1
@@ -31,6 +31,7 @@ trap "rm -rf $workdir" EXIT
   rpc mkdir -p pitmenu
   scp -r \
     $workdir/*.pyc $pitmenu/about.* $pitmenu/LICENSE $pitmenu/cmd.exit.png \
+    $srcdir/demo.zip \
     $srcdir/helper.sh $srcdir/tools.* $srcdir/extra \
     $ruser@$system:pitmenu
 
