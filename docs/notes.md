@@ -188,3 +188,147 @@ x : 2 HDMI, 1 analogue, 0 auto
 
 ----------------------------------------------------------------------
 Add a menu to toggle turbo mode...
+Digispark Pro: Pin-out diagram:
+http://digispark.s3.amazonaws.com/DigisparkProDiagram2.png
+18.3mm by 26.7mm
+
+Adafruit Joystick breakout:
+https://www.adafruit.com/products/512
+1.5" x 1.5" x 1.25" tall
+
+GPIO pin-outs
+http://elinux.org/images/2/2a/GPIOs.png
+
+
+Mausberry set-up
+
+
+--- python ---
+# Import the modules to send commands to the system and access GPIO pins
+# http://openmicros.org/index.php/articles/94-ciseco-product-documentation/raspberry-pi/217-getting-started-with-raspberry-pi-gpio-and-python
+from subprocess import call
+import RPi.GPIO as gpio
+ 
+# Define a function to keep script running
+def loop():
+    raw_input()
+ 
+# Define a function to run when an interrupt is called
+def shutdown(pin):
+    call('halt', shell=False)
+ 
+gpio.setmode(gpio.BOARD) # Set pin numbering to board numbering
+gpio.setup(7, gpio.IN) # Set up pin 7 as an input
+gpio.add_event_detect(7, gpio.RISING, callback=shutdown, bouncetime=200) # Set up an interrupt to look for button presses
+ 
+loop() # Run the loop function to keep script running
+
+--- bash ---
+#!/bin/bash
+
+#this is the GPIO pin connected to the lead on switch labeled OUT
+GPIOpin1=23
+
+#this is the GPIO pin connected to the lead on switch labeled IN
+GPIOpin2=24
+
+echo "$GPIOpin1" > /sys/class/gpio/export
+echo "in" > /sys/class/gpio/gpio$GPIOpin1/direction
+echo "$GPIOpin2" > /sys/class/gpio/export
+echo "out" > /sys/class/gpio/gpio$GPIOpin2/direction
+echo "1" > /sys/class/gpio/gpio$GPIOpin2/value
+while [ 1 = 1 ]; do
+power=$(cat /sys/class/gpio/gpio$GPIOpin1/value)
+if [ $power = 0 ]; then
+sleep 1
+else
+sudo poweroff
+fi
+done
+
+
+## Handel virtual events
+http://thiemonge.org/getting-started-with-uinput
+https://github.com/Blub/netevent/wiki/Share-devices-over-the-net
+Consume key events: https://github.com/wertarbyte/triggerhappy
+
+
+http://superuser.com/questions/67659/linux-share-keyboard-over-network
+Requires evdev kernel module:
+$ cat /dev/input/by-path/*-kbd | nc <ip> 4444
+On the client
+$ nc -l -p 4444 > /dev/input/by-path/*-kbd
+
+
+https://www.raspberrypi.org/documentation/configuration/wireless/wireless-cli.md
+
+
+Raspberry Pi B Model
+http://www.thingiverse.com/thing:725844
+
+
+Simple cases:
+http://www.thingiverse.com/thing:85582
+http://www.thingiverse.com/thing:209100
+
+
+PSP: PiStation Portable
+http://www.thingiverse.com/thing:833219
+- Lighted Buttons, large desing
+- Model 1B
+- Teensy
+- Battery + Powerboost 500 + charger
+- 2axis analog joystick
+- 4.3" display
+
+
+Game Pi
+http://www.thingiverse.com/thing:871368
+- Basic design
+- Pi 1B
+- SNES Controller
+- 3.5" PiTFT
+- Mausberry shutdown switch
+
+
+Controller = Buttons+ Joystick
+Pi
+Audio
+Power
+
+
+# Install/Configure Wifi
+
+apt-get install firmware-ralink  firmware-realtek wireless-tools wpasupplicant usbutils
+edit /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+allow-hotplug eth0
+iface eth0 inet dhcp
+
+allow-hotplug wlan0
+iface wlan0 inet manual
+wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+iface default inet dhcp
+
+edit /etc/wpa/wpa_supplicant.conf
+network={
+    ssid="testing"
+    psk="testingPassword"
+}
+
+ifdown wlan0
+ifup wlan0
+
+
+
+Custom Kernel:
+https://learn.adafruit.com/raspberry-pi-kernel-o-matic/overview
+https://github.com/adafruit/Adafruit-Pi-Kernel-o-Matic
+
+MENU Stuff
+https://github.com/baochan/cupcade-launcher
+
+AdaFruit CupCade / Retro game software
+https://github.com/adafruit/Adafruit-Retrogame
